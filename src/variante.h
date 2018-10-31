@@ -2,7 +2,7 @@
 #define VARIANTE_H
 
 #define LOGINS gindreg;obermeye
-#define SUJET 1
+#define SUJET 4
 #define USE_GUILE 0
 #define USE_GNU_READLINE 1
 

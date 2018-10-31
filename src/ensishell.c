@@ -42,7 +42,7 @@ int question6_executer(char *line)
 
 	/* Remove this line when using parsecmd as it will free it */
 	free(line);
-	
+
 	return 0;
 }
 
@@ -66,8 +66,7 @@ void terminate(char *line) {
 
 
 
-int execute_commande(char **cmd){
-				
+int execute_commande(char **cmd, int back){
 
 	pid_t pid;
 //	const char *quisuije = "le pere";
@@ -76,18 +75,25 @@ int execute_commande(char **cmd){
 	   // quisuije = "le fils";
 	  //  printf("je suis %s\n",quisuije);
 	    //Le exec remplace tout le code -> termine
+
 	    execvp(cmd[0], cmd);
+
+			printf("Unknown command\n");
+
+    	exit(0);
 	}
-	else{
-		// attend son fiston.
+	else
+	{
+		// attend son fiston
 		// les descripteurs de fichier reste identique
 	//	printf("je suis %s\n", quisuije);
-		wait(NULL);
-	}	
-
+		if(!back)
+		{
+				wait(NULL);
+		}
+	}
 	return 0;
 }
-
 
 int main() {
         printf("Variante %d: %s\n", VARIANTE, VARIANTE_STRING);
@@ -133,12 +139,12 @@ int main() {
 
 		/* If input stream closed, normal termination */
 		if (!l) {
-		  
+
 			terminate(0);
 		}
-		
 
-		
+
+
 		if (l->err) {
 			/* Syntax error, read another command */
 			printf("error: %s\n", l->err);
@@ -154,8 +160,7 @@ int main() {
 			//contient la commande et ses arguments ([ls, -a] ici seq[0] est le tableau correspondant a la commande avec arg
 			char **cmd = l->seq[i];
 //			printf("seq[%d]: ", i);
-                     	execute_commande(cmd);	
-		        
+                     	execute_commande(cmd, l->bg);
 	//		for (j=0; cmd[j]!=0; j++) {
         //                      printf("'%s' ", cmd[j]);
            //           }
@@ -164,16 +169,3 @@ int main() {
 	}
 
 }
-
-
-
-
-
-			
-			
-	
-
-
-
-
-
