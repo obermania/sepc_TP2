@@ -12,13 +12,28 @@
 #ifndef __READCMD_H
 #define __READCMD_H
 
-
-
 /* If GNU Readline is not available, internal readline will be used*/
 #include "variante.h"
+#include <stdint.h>
+
+/* Structure de données décrivant un élément d'une liste. */
+struct cellule
+{
+    /* La valeur d'une cellule est un entier. */
+    int val;
+    /* Pointeur vers la cellule suivant dans la liste. */
+    struct cellule *suiv;
+};
+
+
+
+
+
+
+
 
 /* Read a command line from input stream. Return null when input closed.
-Display an error and call exit() in case of memory exhaustion. 
+Display an error and call exit() in case of memory exhaustion.
 It frees also line and set it at NULL */
 struct cmdline *parsecmd(char **line);
 
@@ -39,9 +54,14 @@ struct cmdline {
 			   displayed. The other fields are null. */
 	char *in;	/* If not null : name of file for input redirection. */
 	char *out;	/* If not null : name of file for output redirection. */
-        int   bg;       /* If set the command must run in background */ 
+        int   bg;       /* If set the command must run in background */
 	char ***seq;	/* See comment below */
 };
+
+void afficher(struct cellule *l);
+void inserer_tete(struct cellule **pl, int v);
+void supprimer_premiere_occurrence(struct cellule **pl, int v);
+
 
 /* Field seq of struct cmdline :
 A command line is a sequence of commands whose output is linked to the input

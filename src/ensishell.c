@@ -13,10 +13,16 @@
 #include "readcmd.h"
 #include <sys/types.h>
 #include <unistd.h>
-
+#include <stdint.h>
 #include <sys/types.h>
 #include <sys/wait.h>
+#include <assert.h>
 
+/*Structure dictionnaire. clef = pid*/
+
+int pid_background = 0;
+
+struct cellule *liste_pid_en_cours = NULL;
 
 #ifndef VARIANTE
 #error "Variante non défini !!"
@@ -30,6 +36,10 @@
 
 #if USE_GUILE == 1
 #include <libguile.h>
+
+
+
+
 
 int question6_executer(char *line)
 {
@@ -67,14 +77,15 @@ void terminate(char *line) {
 
 /*le wait est necessaire car on connait pas l'ordre d'éxecution fils/pere
  * la console s'affiche avant l'exec du fils car le pere est rapide*/
-int execute_commande(char **cmd, int back){
+int execute_commande(char **cmd, int back, int *pid_background){
 
 	pid_t pid;
-	const char *quisuije = "le pere";
+	int status;
+	//const char *quisuije = "le pere";
 	pid = fork();
 	if (pid == 0){
-	    quisuije = "le fils";
-	    printf("je suis %s\n",quisuije);
+	  //  quisuije = "le fils";
+	   // printf("je suis %s\n",quisuije);
 	    //Le exec remplace tout le code -> termine
 
 	    execvp(cmd[0], cmd);
@@ -89,18 +100,132 @@ int execute_commande(char **cmd, int back){
 
 	else
 	{
-		
-		// attend son fiston
-		// les descripteurs de fichier reste identique
-		printf("je suis %s \n", quisuije);
 		//si pas de tache en arriere, on attend que fils se termine
-		//if(!back)
-	//	{
-		wait(NULL);
-	//	}
+		if(!back){
+			waitpid(pid,&status,0);
+		}
+		//le processus fils  s'execute en tache de fond
+		else{
+			inserer_tete(&liste_pid_en_cours, pid);
+
+		}
+
 	}
 	return 0;
 }
+
+
+
+/*
+		Affiche sur la sortie standard les valeurs des cellules de la liste
+		pointée par l.
+*/
+ void afficher(struct cellule *l)
+{
+		/* A implémenter! */
+		while (l != NULL) {
+				printf("%i -> ", l->val);
+				l = l->suiv;
+		}
+		printf("FIN\n");
+}
+
+void inserer_tete(struct cellule **pl, int v)
+{
+		/*
+				On alloue une nouvelle cellule, qui sera la tête de la nouvelle liste.
+				L'opérateur sizeof calcule le nombre d'octet à allouer pour le type
+				voulu.
+		*/
+		struct cellule *liste = malloc(sizeof(struct cellule));
+		/*Programmation défensive : on vérification que malloc s'est bien passé*/
+		assert(liste != NULL);
+		/* On fixe les valeurs de cette cellule. */
+		liste->val = v;
+		liste->suiv = *pl;
+
+		/* On fait pointer l'argument pl vers la nouvelle liste */
+		*pl = liste;
+}
+
+/*
+		Supprime de la liste pointée par pl la première occurrence de cellule
+		contenant la valeur v.
+*/
+void supprimer_premiere_occurrence(struct cellule **pl, int v)
+{
+		/* A implémenter! */
+		/*
+				Cette fonction prend en argument un pointeur sur la liste, car cette
+				dernière change lorsqu'on supprime la première cellule.
+		*/
+		struct cellule sent = { -1, *pl };
+		struct cellule *p = &sent;
+		/*
+				En C, les conditions sont évaluées séquentiellement. L'expression à
+				droite d'une condition logique && n'est évaluée que si l'expression à
+				gauche est vraie.
+		*/
+		while (p->suiv != NULL && p->suiv->val != v) {
+				p = p->suiv;
+		}
+
+		/* Cas occurence trouvée */
+		if (p->suiv != NULL) {
+				/*
+						On rechaine les 2 cellules de la liste entourant l'occurrence et on
+						libère la cellule trouvée.
+				*/
+				struct cellule *style = p->suiv;
+				p->suiv = style->suiv;
+				free(style);
+		}
+		*pl = sent.suiv;
+}
+
+/*on parcours les proccessus en cours.
+si ils sont toujours là on affiche. sinon on supprime des processus en cours.
+a essayer avec sleep + ps*/
+
+void execute_job(){
+
+	struct cellule *parcours_liste = liste_pid_en_cours;
+	while (parcours_liste != NULL){
+		int pid_cellule = (parcours_liste)->val;
+		int resultat = waitpid(pid_cellule, NULL, WNOHANG);
+		/*toujours là*/
+		switch (resultat){
+
+			case -1:
+				perror("waitpid");
+				break;
+
+			case 0:
+				printf("en cours: %i \n",pid_cellule);
+				break;
+
+			default:
+				//printf("le processus a change\n %i",resultat);
+				supprimer_premiere_occurrence(&liste_pid_en_cours,pid_cellule);
+		}
+		parcours_liste = parcours_liste->suiv;
+	}
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 int main() {
         printf("Variante %d: %s\n", VARIANTE, VARIANTE_STRING);
@@ -166,13 +291,21 @@ int main() {
 		for (i=0; l->seq[i]!=0; i++) {
 			//contient la commande et ses arguments ([ls, -a] ici seq[0] est le tableau correspondant a la commande avec arg
 			char **cmd = l->seq[i];
-//			printf("seq[%d]: ", i);
-                     	execute_commande(cmd, l->bg);
+
+			/*commande jobs*/
+			if (strcmp(*cmd, "jobs")==0){
+				execute_job();
+			}
+			/*sinon*/
+			else{
+    		execute_commande(cmd, l->bg, &pid_background);
+				//printf("%i\n", pid_background);
+			}
+
 	//		for (j=0; cmd[j]!=0; j++) {
         //                      printf("'%s' ", cmd[j]);
            //           }
 	//		printf("\n");
 		}
 	}
-
 }
