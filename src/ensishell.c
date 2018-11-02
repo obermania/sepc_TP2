@@ -65,32 +65,39 @@ void terminate(char *line) {
 }
 
 
-
+/*le wait est necessaire car on connait pas l'ordre d'éxecution fils/pere
+ * la console s'affiche avant l'exec du fils car le pere est rapide*/
 int execute_commande(char **cmd, int back){
 
 	pid_t pid;
-//	const char *quisuije = "le pere";
+	const char *quisuije = "le pere";
 	pid = fork();
 	if (pid == 0){
-	   // quisuije = "le fils";
-	  //  printf("je suis %s\n",quisuije);
+	    quisuije = "le fils";
+	    printf("je suis %s\n",quisuije);
 	    //Le exec remplace tout le code -> termine
 
 	    execvp(cmd[0], cmd);
 
-			printf("Unknown command\n");
-
+	    printf("Unknown command\n");
     	exit(0);
 	}
+	else if (pid == -1){
+		perror("fork");
+	}
+
+
 	else
 	{
+		
 		// attend son fiston
 		// les descripteurs de fichier reste identique
-	//	printf("je suis %s\n", quisuije);
-		if(!back)
-		{
-				wait(NULL);
-		}
+		printf("je suis %s \n", quisuije);
+		//si pas de tache en arriere, on attend que fils se termine
+		//if(!back)
+	//	{
+		wait(NULL);
+	//	}
 	}
 	return 0;
 }
