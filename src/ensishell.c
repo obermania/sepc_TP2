@@ -77,8 +77,8 @@ void terminate(char *line) {
 
 /*le wait est necessaire car on connait pas l'ordre d'éxecution fils/pere
  * la console s'affiche avant l'exec du fils car le pere est rapide*/
-int execute_commande(char **cmd, int back, int *pid_background){
-
+int execute_commande(char **cmd, int back, int *pid_background)
+{
 	pid_t pid;
 	int status;
 	//const char *quisuije = "le pere";
@@ -110,6 +110,70 @@ int execute_commande(char **cmd, int back, int *pid_background){
 
 		}
 
+	}
+	return 0;
+}
+
+int execute_pipe(char ***cmds, int back)
+{
+	pid_t pid;
+	int status;
+	//const char *quisuije = "le pere";
+	pid = fork();
+	if (pid == 0)
+	{
+		 char **cmd1 = cmds[0];
+		 char **cmd2 = cmds[1];
+		 int tuyau[2];
+
+		 pipe(tuyau);
+
+		 pid_t second_pid;
+		 //const char *quisuije = "le pere";
+		 second_pid = fork();
+		 if (second_pid == 0)
+		 {
+				 //  quisuije = "le fils";
+					// printf("je suis %s\n",quisuije);
+					 //Le exec remplace tout le code -> termine
+
+				dup2(tuyau[0], 0);
+				close(tuyau[1]);
+				close(tuyau[0]);
+
+				execvp(cmd2[0], cmd2);
+
+				printf("Unknown command\n");
+				exit(0);
+		}
+		else if (second_pid == -1)
+		{
+				perror("fork");
+		}
+	  else
+		{
+				dup2(tuyau[1], 1);
+				close(tuyau[0]);
+				close(tuyau[1]);
+				execvp(cmd1[0], cmd1);
+		}
+	}
+	else if (pid == -1)
+	{
+				perror("fork");
+	}
+	else
+	{
+		//si pas de tache en arriere, on attend que fils se termine
+		if(!back)
+		{
+			waitpid(pid,&status,0);
+		}
+		//le processus fils  s'execute en tache de fond
+		else
+		{
+			inserer_tete(&liste_pid_en_cours, pid);
+		}
 	}
 	return 0;
 }
@@ -287,10 +351,20 @@ int main() {
 		if (l->out) printf("out: %s\n", l->out);
 		if (l->bg) printf("background (&)\n");
 
+		int numcommands = 0;
+
+		for (i=0; l->seq[i]!=0; i++)
+		{
+			numcommands += 1;
+		}
+
 		/* Display each command of the pipe */
-		for (i=0; l->seq[i]!=0; i++) {
+		//for (i=0; l->seq[i]!=0; i++) {
 			//contient la commande et ses arguments ([ls, -a] ici seq[0] est le tableau correspondant a la commande avec arg
-			char **cmd = l->seq[i];
+
+		if(numcommands == 1)
+		{
+			char **cmd = l->seq[0];
 
 			/*commande jobs*/
 			if (strcmp(*cmd, "jobs")==0){
@@ -301,11 +375,15 @@ int main() {
     		execute_commande(cmd, l->bg, &pid_background);
 				//printf("%i\n", pid_background);
 			}
-
+		}
+		else if(numcommands == 2)
+		{
+			execute_pipe(l->seq, l->bg);
+		}
 	//		for (j=0; cmd[j]!=0; j++) {
         //                      printf("'%s' ", cmd[j]);
            //           }
 	//		printf("\n");
-		}
+
 	}
 }
