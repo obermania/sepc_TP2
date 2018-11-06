@@ -3,7 +3,7 @@
 
 #define LOGINS gindreg;obermeye
 #define SUJET 4
-#define USE_GUILE 0
+#define USE_GUILE 1
 #define USE_GNU_READLINE 1
 
 #define VARIANTE SUJET

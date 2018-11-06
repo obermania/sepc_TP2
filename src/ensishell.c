@@ -156,6 +156,7 @@ int execute_pipe(char ***cmds, int back)
 				close(tuyau[0]);
 				close(tuyau[1]);
 				execvp(cmd1[0], cmd1);
+
 		}
 	}
 	else if (pid == -1)
@@ -177,6 +178,76 @@ int execute_pipe(char ***cmds, int back)
 	}
 	return 0;
 }
+
+
+/*int execute_pipev2(char ***cmds, int back, int num)
+{
+	pid_t pid;
+	int status;
+	//const char *quisuije = "le pere";
+	pid = fork();
+	if (pid == 0)
+	{
+
+		 int *tuyaus[num - 1];
+		 for(int i = 0; i<= num - 1; i++)
+		 {
+			 int tuyau[2];
+			 pipe(tuyau);
+			 tuyaus[i] = tuyau;
+		 }
+
+		 for(int i = 0; i< num - 1; i++)
+		 {
+			 pid_t second_pid = fork();
+			 if(second_pid == 0)
+			 {
+				  dup2(tuyaus[i][0], 0);
+	 			  close(tuyaus[i][0]);
+	 			  close(tuyaus[i][1]);
+					perror("pouet");
+	 			  execvp(cmds[i+1][0], cmds[i+1]);
+
+	 			  printf("Unknown command\n");
+	 			  exit(0);
+			 }
+			 else if (second_pid == -1)
+	 		 {
+	 				perror("fork");
+	 		 }
+			 else
+			 {
+				 dup2(tuyaus[i][1], 1);
+ 				 close(tuyaus[i][0]);
+ 				 close(tuyaus[i][1]);
+				 perror("salut");
+ 				 execvp(cmds[i][0], cmds[i]);
+			 }
+			 else if (second_pid == -1)
+	 		 {
+	 				perror("fork");
+	 		 }
+		 }
+	}
+	else if (pid == -1)
+	{
+				perror("fork");
+	}
+	else
+	{
+		//si pas de tache en arriere, on attend que fils se termine
+		if(!back)
+		{
+			waitpid(pid,&status,0);
+		}
+		//le processus fils  s'execute en tache de fond
+		else
+		{
+			inserer_tete(&liste_pid_en_cours, pid);
+		}
+	}
+	return 0;
+}*/
 
 
 
@@ -277,20 +348,6 @@ void execute_job(){
 }
 
 
-
-
-
-
-
-
-
-
-
-
-
-
-
-
 int main() {
         printf("Variante %d: %s\n", VARIANTE, VARIANTE_STRING);
 
@@ -376,6 +433,10 @@ int main() {
 				//printf("%i\n", pid_background);
 			}
 		}
+		/*else if(numcommands == 2)
+		{
+			execute_pipe(l->seq, l->bg);
+		}*/
 		else if(numcommands == 2)
 		{
 			execute_pipe(l->seq, l->bg);
