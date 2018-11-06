@@ -54,10 +54,11 @@ struct cmdline {
 			   displayed. The other fields are null. */
 	char *in;	/* If not null : name of file for input redirection. */
 	char *out;	/* If not null : name of file for output redirection. */
-        int   bg;       /* If set the command must run in background */
+  int   bg;       /* If set the command must run in background */
 	char ***seq;	/* See comment below */
 };
 
+int execute_pipe(char ***cmds, int back, char *in, char * out);
 void afficher(struct cellule *l);
 void inserer_tete(struct cellule **pl, int v);
 void supprimer_premiere_occurrence(struct cellule **pl, int v);

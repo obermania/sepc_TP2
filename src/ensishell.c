@@ -14,9 +14,11 @@
 #include <sys/types.h>
 #include <unistd.h>
 #include <stdint.h>
-#include <sys/types.h>
 #include <sys/wait.h>
 #include <assert.h>
+#include <sys/stat.h>
+#include <fcntl.h>
+
 
 /*Structure dictionnaire. clef = pid*/
 
@@ -75,23 +77,35 @@ void terminate(char *line) {
 }
 
 
+
 /*le wait est necessaire car on connait pas l'ordre d'éxecution fils/pere
  * la console s'affiche avant l'exec du fils car le pere est rapide*/
-int execute_commande(char **cmd, int back, int *pid_background)
+int execute_commande(char **cmd, int back, char * in, char * out)
 {
 	pid_t pid;
 	int status;
 	//const char *quisuije = "le pere";
 	pid = fork();
 	if (pid == 0){
-	  //  quisuije = "le fils";
-	   // printf("je suis %s\n",quisuije);
-	    //Le exec remplace tout le code -> termine
+		//	/*redirige l'entrée pour la commande. rien apres exec
+		/*redirige l'entrée pour la commande. rien apres exec*/
+		if (in){
+				int new_in = open(in, O_RDONLY); /*new_in est l'entrée correspondante a in dans la table des descript*/
+				dup2(new_in, 0); /*0 est close d'office.*/ /*l'entrée stdin est maintenant le fichier associé a new_in*/
+				/*apparait 2**/
+				close(new_in);
+		}
+		if(out){
+				int new_out = open(out, O_WRONLY);
+				dup2(new_out,1);
+				/*apparait 2*  */
+				close(new_out);
+		}
 
-	    execvp(cmd[0], cmd);
-
-	    printf("Unknown command\n");
-    	exit(0);
+			execvp(cmd[0], cmd);
+			printf("Unknown command\n");
+			exit(0);
+				//execute(cmd, in, out);
 	}
 	else if (pid == -1){
 		perror("fork");
@@ -114,7 +128,10 @@ int execute_commande(char **cmd, int back, int *pid_background)
 	return 0;
 }
 
-int execute_pipe(char ***cmds, int back)
+/*deux fork comme ca tout pipe peut s'éxecuter en arriere plan.
+*/
+
+int execute_pipe(char ***cmds, int back, char *in, char * out)
 {
 	pid_t pid;
 	int status;
@@ -126,6 +143,12 @@ int execute_pipe(char ***cmds, int back)
 		 char **cmd2 = cmds[1];
 		 int tuyau[2];
 
+		 /*crée un tube.
+		 contient deux descripteur de fichier sur tuyau:
+		  -tuyau[0] qui est ouvert en mode lecture le fichier tuyau (pointe vers tuyau)
+			-tuyau[1] qui est ouvert en mode ecriture sur le fichier tuyau
+		 */
+		 /*P|F <-> ls | grep u*/
 		 pipe(tuyau);
 
 		 pid_t second_pid;
@@ -134,13 +157,26 @@ int execute_pipe(char ***cmds, int back)
 		 if (second_pid == 0)
 		 {
 				 //  quisuije = "le fils";
-					// printf("je suis %s\n",quisuije);
-					 //Le exec remplace tout le code -> termine
 
-				dup2(tuyau[0], 0);
+					/*redirige l'entrée stdard(du processus fils  sur  le tuyau[0] = descripteur de fichier. 0 pour dire entrée  */
+					/*maintenant a l'entree 0, il y a la struct pointer par le descrpt de fichier tuyau[0]. l'ancienne entrée standard a disparu.*/
+
+				/*on suppr l'endroit d'ecriture sur le fichier pipe (fermer écoutilles tuyau en écriture)*/
 				close(tuyau[1]);
-				close(tuyau[0]);
 
+				/*fils va lire sur tuyau*/
+				dup2(tuyau[0], 0); /*tuyaux [0] devient entrée du processus*/
+				/*la struct pointé par tuyau[0] appait 2* dans la table des descripteur(en 0 et a tuyau[0]). on veut juste stdin. il faut supprimer l'autre endroit vers lequel il pointe*/
+				close(tuyau[0]); /*on vire l'ancien tuyau[0]*/
+
+
+				/*fils va ecrire sur out*/
+				int new_out =  open(out, O_WRONLY); /*new_in est l'entrée correspondante a in dans la table des descript*/
+				dup2(new_out,1); /*new_out devient sortie du processus*/
+				close(new_out); /*on vire l'ancien new_out*/
+
+
+				//execute(cmd2, NULL, NULL);
 				execvp(cmd2[0], cmd2);
 
 				printf("Unknown command\n");
@@ -150,13 +186,25 @@ int execute_pipe(char ***cmds, int back)
 		{
 				perror("fork");
 		}
+		/*pour le pere on redirige la sortie de processus vers le tuyau*/
 	  else
 		{
-				dup2(tuyau[1], 1);
+				/*ferme écoutille du tuyau en lecture*/
 				close(tuyau[0]);
-				close(tuyau[1]);
-				execvp(cmd1[0], cmd1);
 
+				/*père va ecrire dans tuyau*/
+				dup2(tuyau[1], 1);
+				/*on suppr l'ancienne case*/
+				close(tuyau[1]);
+
+				/*père va lire dans in*/
+				int new_in = open(in, O_RDONLY);
+				dup2(new_in, 0);
+				/*on suppr l'ancienne case*/
+				close(new_in);
+
+				//execute (cmd1, NULL, NULL);
+				execvp(cmd1[0], cmd1);
 		}
 	}
 	else if (pid == -1)
@@ -178,6 +226,8 @@ int execute_pipe(char ***cmds, int back)
 	}
 	return 0;
 }
+
+
 
 
 /*int execute_pipev2(char ***cmds, int back, int num)
@@ -248,6 +298,21 @@ int execute_pipe(char ***cmds, int back)
 	}
 	return 0;
 }*/
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 
 
 
@@ -348,6 +413,20 @@ void execute_job(){
 }
 
 
+
+
+
+
+
+
+
+
+
+
+
+
+
+
 int main() {
         printf("Variante %d: %s\n", VARIANTE, VARIANTE_STRING);
 
@@ -404,21 +483,26 @@ int main() {
 			continue;
 		}
 
-		if (l->in) printf("in: %s\n", l->in);
-		if (l->out) printf("out: %s\n", l->out);
+		/*l-> out pour toute la comd (pour tout le pipe)*/
+		if (l->in) printf("in: %s\n", l->in); /*fichier ou lire*/
+		if (l->out) printf("out: %s\n", l->out); /*fichier ou ecrire*/
 		if (l->bg) printf("background (&)\n");
 
 		int numcommands = 0;
 
 		for (i=0; l->seq[i]!=0; i++)
 		{
+		//	for (int j=0; l->seq[i][j] != 0; j++){
+		//		printf("seq[%i][%i] = %s\n",i,j,l->seq[i][j]);
+		//	}
 			numcommands += 1;
 		}
 
-		/* Display each command of the pipe */
 		//for (i=0; l->seq[i]!=0; i++) {
+		/* Display each command of the pipe */
 			//contient la commande et ses arguments ([ls, -a] ici seq[0] est le tableau correspondant a la commande avec arg
 
+		//printf("constante: %i\n",O_RDWR);
 		if(numcommands == 1)
 		{
 			char **cmd = l->seq[0];
@@ -429,17 +513,13 @@ int main() {
 			}
 			/*sinon*/
 			else{
-    		execute_commande(cmd, l->bg, &pid_background);
+    		execute_commande(cmd, l->bg, l->in, l->out);
 				//printf("%i\n", pid_background);
 			}
 		}
-		/*else if(numcommands == 2)
-		{
-			execute_pipe(l->seq, l->bg);
-		}*/
 		else if(numcommands == 2)
 		{
-			execute_pipe(l->seq, l->bg);
+			execute_pipe(l->seq, l->bg, l->in, l->out);
 		}
 	//		for (j=0; cmd[j]!=0; j++) {
         //                      printf("'%s' ", cmd[j]);
