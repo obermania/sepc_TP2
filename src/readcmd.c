@@ -5,7 +5,7 @@
  * This code is distributed under the GLPv3 licence. *
  * Ce code est distribué sous la licence GPLv3+.     *
  *****************************************************/
-
+//
 #include <stdio.h>
 #include <stddef.h>
 #include <stdlib.h>
@@ -62,13 +62,13 @@ char *readline(char *prompt)
 		//le lieme etait le car null classique. on va enlever le retour chariot et le remttre avant
 			l--;
 			buf[l] = 0;
-			//IN FINE ON RETOURNE LA CHAINE LU 
+			//IN FINE ON RETOURNE LA CHAINE LU
 			return buf;
 		}
 		//on a pas fini de lire la commande:
 		if (buf_len >= (INT_MAX / 2)) memory_error();
 		buf_len *= 2;
-	
+
 		buf = xrealloc(buf, buf_len * sizeof(char));
 		if (fgets(buf + l, buf_len - l, stdin) == NULL) return buf;
 	} while (1);

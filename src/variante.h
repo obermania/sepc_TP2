@@ -5,14 +5,14 @@
 #define SUJET 1
 #define USE_GUILE 0
 #define USE_GNU_READLINE 1
-
+//
 #define VARIANTE SUJET
 
 #if VARIANTE == 0
 #define VARIANTE_STRING "Jokers et environnement ; Limitation du temps de calcul"
-#elif VARIANTE == 1 
+#elif VARIANTE == 1
 #define VARIANTE_STRING "Jokers étendus (tilde, brace) ; Pipes multiples"
-#elif VARIANTE == 2 
+#elif VARIANTE == 2
 #define VARIANTE_STRING "Terminaison asynchrone ; Limitations du temps de calcul"
 #elif VARIANTE == 3
 #define VARIANTE_STRING "Temps de calcul ; Pipes multiples"
