@@ -53,7 +53,7 @@ int question6_executer(char *line)
 	printf("Not implemented yet: can not execute %s\n", line);
 
 	/* Remove this line when using parsecmd as it will free it */
-	l = parsecmd( & line);
+	l = parsecmd(&line);
 	execute_c(l);
 
 
@@ -156,6 +156,7 @@ int execute_pipe(char ***cmds, int back, char *in, char * out)
 		 pid_t second_pid;
 		 //const char *quisuije = "le pere";
 		 second_pid = fork();
+		 /*Le fils lit dans le tuyau et écrit sur out(si il y a)/sorie standard */
 		 if (second_pid == 0)
 		 {
 				 //  quisuije = "le fils";
@@ -171,12 +172,12 @@ int execute_pipe(char ***cmds, int back, char *in, char * out)
 				/*la struct pointé par tuyau[0] appait 2* dans la table des descripteur(en 0 et a tuyau[0]). on veut juste stdin. il faut supprimer l'autre endroit vers lequel il pointe*/
 				close(tuyau[0]); /*on vire l'ancien tuyau[0]*/
 
-
-				/*fils va ecrire sur out*/
-				int new_out =  open(out, O_WRONLY); /*new_in est l'entrée correspondante a in dans la table des descript*/
-				dup2(new_out,1); /*new_out devient sortie du processus*/
-				close(new_out); /*on vire l'ancien new_out*/
-
+				if (out){
+					/*fils va ecrire sur out*/
+					int new_out =  open(out, O_WRONLY); /*new_out est l'entrée correspondante a out (path passé en param) dans la table des descript*/
+					dup2(new_out,1); /*new_out devient sortie du processus*/
+					close(new_out); /*on vire l'ancien new_out*/
+				}
 
 				//execute(cmd2, NULL, NULL);
 				execvp(cmd2[0], cmd2);
@@ -199,12 +200,13 @@ int execute_pipe(char ***cmds, int back, char *in, char * out)
 				/*on suppr l'ancienne case*/
 				close(tuyau[1]);
 
-				/*père va lire dans in*/
-				int new_in = open(in, O_RDONLY);
-				dup2(new_in, 0);
-				/*on suppr l'ancienne case*/
-				close(new_in);
-
+				if (in){
+					/*père va lire dans in*/
+					int new_in = open(in, O_RDONLY);
+					dup2(new_in, 0);
+					/*on suppr l'ancienne case*/
+					close(new_in);
+			  }
 				//execute (cmd1, NULL, NULL);
 				execvp(cmd1[0], cmd1);
 		}
@@ -228,6 +230,90 @@ int execute_pipe(char ***cmds, int back, char *in, char * out)
 	}
 	return 0;
 }
+
+/*Le père a un seul fils à la fois.*/
+/*On utilise un tuyau à chaque fois. */
+/*Lecture(fd_in)--->[FILS]-->---TUYAU--->[PERE]--->fd_in = p[0] = sortie du tuyau_courant = entree du tuyau suivant.  */
+/*c'est pas necessaire de fermer les src dupliqué dans le fils car il va mourir rapidement*/
+
+int execute_multiple_pipe(char ***cmd, int back, char *in, char *out){
+
+	/*entrée standard par defaut*/
+	int fd_in = 0;
+	/*si on specifie une entree standard*/
+	if (in){
+		 fd_in = open(in, O_RDONLY);
+	}
+	/*contient les descripteur de fichiers permettants au père/fils de comuniquer.*/
+	int p[2];
+	pid_t pidpipe;
+	/*pid pour backgorund*/
+	pid_t pid;
+	/*background*/
+	if ((pid = fork()) == -1){
+		exit(EXIT_FAILURE);
+	}
+	else if(pid == 0){
+
+	// tq il reste ue comande a éxecuter
+	while (*cmd != NULL) {
+
+		/*comunication père (et futur fils)*/
+    pipe(p);
+		//fprintf(stderr,"p[0]: %i\n,p[1]: %i\n", p[0], p[1]);
+		/*on crée un fils(qui aura accès à ce tuyau) */
+    if ((pidpipe = fork()) == -1)
+      {
+        exit(EXIT_FAILURE);
+      }
+		/*Si c'est le fils: il va lire dans fd_in*/
+    else if (pidpipe == 0)
+      {
+        dup2(fd_in, 0); /*lecture dans fd_in*/
+				/*on ferme l'accès à la lecture dans le tuyau. (Réservé pour le père.). */
+				close(p[0]);
+
+				/* si il y a une comande après, on écrit dans le tuyau comun au père.*/
+
+				if (*(cmd + 1) != NULL){
+          dup2(p[1], 1);
+				}
+				/*Sinon, ce fils est le dernier de la chaine, il écrira sur la sortie std (ou out si redirection) */
+				else{
+					if (out){
+						int new_out = open(out, O_WRONLY);
+						dup2(new_out, 1);
+					}
+				}
+
+        execvp((*cmd)[0], *cmd);
+        exit(EXIT_FAILURE);
+      }
+
+    else
+      {
+				/*on attend que le fils ai écrit dans tuyau.*/
+        wait(NULL);
+				/*on ferme l'écriture. Le père doit lire dans le tuyau.*/
+        close(p[1]);
+				/*p[0] est le descripteur de fichier qui pointe sur la sortie du tuyau. On le svgarde. le prochain fils ira lire dessus.*/
+        fd_in = p[0];
+        cmd++;
+      }
+		}
+	}
+	else{
+		if (!back){
+			wait(NULL);
+		}
+		else{
+			inserer_tete(&liste_pid_en_cours, pid);
+		}
+	}
+
+	return 0;
+}
+
 
 
 
@@ -501,9 +587,9 @@ void execute_c (struct cmdline *l){
 
 			for (int i=0; l->seq[i]!=0; i++)
 			{
-			//	for (int j=0; l->seq[i][j] != 0; j++){
-			//		printf("seq[%i][%i] = %s\n",i,j,l->seq[i][j]);
-			//	}
+				for (int j=0; l->seq[i][j] != 0; j++){
+					printf("seq[%i][%i] = %s\n",i,j,l->seq[i][j]);
+				}
 				numcommands += 1;
 			}
 
@@ -526,13 +612,10 @@ void execute_c (struct cmdline *l){
 					//printf("%i\n", pid_background);
 				}
 			}
-			else if(numcommands == 2)
+			else if(numcommands >= 2)
 			{
-				execute_pipe(l->seq, l->bg, l->in, l->out);
+				execute_multiple_pipe(l->seq, l->bg, l->in, l->out);
 			}
-		//		for (j=0; cmd[j]!=0; j++) {
-	        //                      printf("'%s' ", cmd[j]);
-	           //           }
-		//		printf("\n");
+
 
 		}
