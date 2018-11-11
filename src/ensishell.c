@@ -50,10 +50,12 @@ int question6_executer(char *line)
 	 * parsecmd, then fork+execvp, for a single command.
 	 * pipe and i/o redirection are not required.
 	 */
-	printf("Not implemented yet: can not execute %s\n", line);
+	//printf("Not implemented yet: can not execute %s\n", line);
 
 	/* Remove this line when using parsecmd as it will free it */
-	l = parsecmd(&line);
+
+	struct cmdline *l;
+    l = parsecmd(&line);
 	execute_c(l);
 
 
@@ -579,17 +581,17 @@ void execute_c (struct cmdline *l){
 
 
 			/*l-> out pour toute la comd (pour tout le pipe)*/
-			if (l->in) printf("in: %s\n", l->in); /*fichier ou lire*/
-			if (l->out) printf("out: %s\n", l->out); /*fichier ou ecrire*/
-			if (l->bg) printf("background (&)\n");
+		//	if (l->in) printf("in: %s\n", l->in); /*fichier ou lire*/
+		//	if (l->out) printf("out: %s\n", l->out); /*fichier ou ecrire*/
+		//	if (l->bg) printf("background (&)\n");
 
 			int numcommands = 0;
 
 			for (int i=0; l->seq[i]!=0; i++)
 			{
-				for (int j=0; l->seq[i][j] != 0; j++){
-					printf("seq[%i][%i] = %s\n",i,j,l->seq[i][j]);
-				}
+		//		for (int j=0; l->seq[i][j] != 0; j++){
+		//			printf("seq[%i][%i] = %s\n",i,j,l->seq[i][j]);
+		//		}
 				numcommands += 1;
 			}
 
@@ -612,7 +614,15 @@ void execute_c (struct cmdline *l){
 					//printf("%i\n", pid_background);
 				}
 			}
-			else if(numcommands >= 2)
+
+            //le miens n'est pas parralele.
+            else if (numcommands == 2){
+                
+                execute_pipe(l->seq, l->bg, l->in, l->out);          
+                      
+            }
+
+			else if(numcommands > 2)
 			{
 				execute_multiple_pipe(l->seq, l->bg, l->in, l->out);
 			}
