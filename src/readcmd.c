@@ -13,7 +13,7 @@
 #include <limits.h>
 #include <string.h>
 #include "readcmd.h"
-
+//
 static void memory_error(void)
 {
 	errno = ENOMEM;
