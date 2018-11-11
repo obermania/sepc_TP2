@@ -50,10 +50,12 @@ int question6_executer(char *line)
 	 * parsecmd, then fork+execvp, for a single command.
 	 * pipe and i/o redirection are not required.
 	 */
-	printf("Not implemented yet: can not execute %s\n", line);
+	//printf("Not implemented yet: can not execute %s\n", line);
 
 	/* Remove this line when using parsecmd as it will free it */
-	l = parsecmd(&line);
+
+	struct cmdline *l;
+    l = parsecmd(&line);
 	execute_c(l);
 
 
@@ -98,7 +100,7 @@ int execute_commande(char **cmd, int back, char * in, char * out)
 				close(new_in);
 		}
 		if(out){
-				int new_out = open(out, O_WRONLY);
+				int new_out = open(out, O_WRONLY | O_CREAT, S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 				dup2(new_out,1);
 				/*apparait 2*  */
 				close(new_out);
@@ -174,7 +176,7 @@ int execute_pipe(char ***cmds, int back, char *in, char * out)
 
 				if (out){
 					/*fils va ecrire sur out*/
-					int new_out =  open(out, O_WRONLY); /*new_out est l'entrée correspondante a out (path passé en param) dans la table des descript*/
+					int new_out =  open(out, O_WRONLY | O_CREAT,  S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH); /*new_out est l'entrée correspondante a out (path passé en param) dans la table des descript*/
 					dup2(new_out,1); /*new_out devient sortie du processus*/
 					close(new_out); /*on vire l'ancien new_out*/
 				}
@@ -281,7 +283,7 @@ int execute_multiple_pipe(char ***cmd, int back, char *in, char *out){
 				/*Sinon, ce fils est le dernier de la chaine, il écrira sur la sortie std (ou out si redirection) */
 				else{
 					if (out){
-						int new_out = open(out, O_WRONLY);
+						int new_out = open(out, O_WRONLY | O_CREAT,  S_IRUSR | S_IWUSR | S_IRGRP | S_IROTH);
 						dup2(new_out, 1);
 					}
 				}
@@ -579,17 +581,17 @@ void execute_c (struct cmdline *l){
 
 
 			/*l-> out pour toute la comd (pour tout le pipe)*/
-			if (l->in) printf("in: %s\n", l->in); /*fichier ou lire*/
-			if (l->out) printf("out: %s\n", l->out); /*fichier ou ecrire*/
-			if (l->bg) printf("background (&)\n");
+		//	if (l->in) printf("in: %s\n", l->in); /*fichier ou lire*/
+		//	if (l->out) printf("out: %s\n", l->out); /*fichier ou ecrire*/
+		//	if (l->bg) printf("background (&)\n");
 
 			int numcommands = 0;
 
 			for (int i=0; l->seq[i]!=0; i++)
 			{
-				for (int j=0; l->seq[i][j] != 0; j++){
-					printf("seq[%i][%i] = %s\n",i,j,l->seq[i][j]);
-				}
+		//		for (int j=0; l->seq[i][j] != 0; j++){
+		//			printf("seq[%i][%i] = %s\n",i,j,l->seq[i][j]);
+		//		}
 				numcommands += 1;
 			}
 
@@ -612,7 +614,15 @@ void execute_c (struct cmdline *l){
 					//printf("%i\n", pid_background);
 				}
 			}
-			else if(numcommands >= 2)
+
+            //le miens n'est pas parralele.
+            else if (numcommands == 2){
+
+                execute_pipe(l->seq, l->bg, l->in, l->out);
+
+            }
+
+			else if(numcommands > 2)
 			{
 				execute_multiple_pipe(l->seq, l->bg, l->in, l->out);
 			}

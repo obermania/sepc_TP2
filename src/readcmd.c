@@ -5,7 +5,7 @@
  * This code is distributed under the GLPv3 licence. *
  * Ce code est distribué sous la licence GPLv3+.     *
  *****************************************************/
-//
+
 #include <stdio.h>
 #include <stddef.h>
 #include <stdlib.h>
