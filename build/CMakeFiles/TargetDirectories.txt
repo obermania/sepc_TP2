@@ -1,0 +1,7 @@
+/home/emmanuel/Documents/2a/SEPC/TP2/build/CMakeFiles/rebuild_cache.dir
+/home/emmanuel/Documents/2a/SEPC/TP2/build/CMakeFiles/check.dir
+/home/emmanuel/Documents/2a/SEPC/TP2/build/CMakeFiles/ensishell.dir
+/home/emmanuel/Documents/2a/SEPC/TP2/build/CMakeFiles/edit_cache.dir
+/home/emmanuel/Documents/2a/SEPC/TP2/build/CMakeFiles/package.dir
+/home/emmanuel/Documents/2a/SEPC/TP2/build/CMakeFiles/package_source.dir
+/home/emmanuel/Documents/2a/SEPC/TP2/build/CMakeFiles/test.dir

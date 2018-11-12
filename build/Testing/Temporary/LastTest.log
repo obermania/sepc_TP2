@@ -1,0 +1,28 @@
+Start testing: Nov 12 18:50 CET
+----------------------------------------------------------
+1/1 Testing: UnitShellTests
+1/1 Test: UnitShellTests
+Command: "/home/emmanuel/Documents/2a/SEPC/TP2/tests/allShellTests.rb"
+Directory: /home/emmanuel/Documents/2a/SEPC/TP2/build
+"UnitShellTests" start time: Nov 12 18:50 CET
+Output:
+----------------------------------------------------------
+Run options: --seed 29164
+
+# Running:
+
+...pipe 12 12
+.......
+
+Finished in 0.040021s, 249.8683 runs/s, 424.7761 assertions/s.
+
+10 runs, 17 assertions, 0 failures, 0 errors, 0 skips
+<end of output>
+Test time =   0.15 sec
+----------------------------------------------------------
+Test Passed.
+"UnitShellTests" end time: Nov 12 18:50 CET
+"UnitShellTests" time elapsed: 00:00:00
+----------------------------------------------------------
+
+End testing: Nov 12 18:50 CET
